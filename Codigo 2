@@ -1,0 +1,213 @@
+#include <iostream>
+#include <vector>
+#include <cstdlib>
+#include <ctime>
+
+using namespace std;
+
+// Códigos de colores ANSI para la consola
+#define RED     "\033[31m■" // Cuadrado rojo
+#define GREEN   "\033[32m■" // Cuadrado verde
+#define YELLOW  "\033[33m■" // Cuadrado amarillo
+#define BLUE    "\033[34m■" // Cuadrado azul
+#define BOLD    "\033[1m"    // Negrita
+#define RESET   "\033[0m"    // Restablecer color
+
+// Clase que representa una celda del tablero
+class Celda {
+public:
+    vector<string> colores; // Cada celda puede contener múltiples fichas
+
+    // Mostrar las fichas en la celda
+    void mostrar() {
+        if (!colores.empty()) {
+            for (const auto& color : colores) {
+                cout << color << RESET << " "; // Muestra el color de cada ficha en la celda
+            }
+            cout << "|";
+        } else {
+            cout << "    |"; // Celda vacía
+        }
+    }
+
+    // Colocar una ficha en la celda
+    void colocarFicha(const string& colorJugador) {
+        colores.push_back(colorJugador); // Agrega la ficha al vector de colores
+    }
+};
+
+// Clase que representa el tablero de juego
+class Tablero {
+public:
+    int guia[11] = {3, 5, 7, 9, 11, 13, 11, 9, 7, 5, 3}; // Guía para el tamaño del tablero
+    Celda** ptr;
+
+    Tablero() {
+        ptr = new Celda*[11];
+        for (int j = 0; j < 11; j++) {
+            ptr[j] = new Celda[guia[j]];
+        }
+    }
+
+    // Mostrar el tablero con las fichas
+    void mostrar() {
+        for (int i = 0; i < 11; i++) {
+            for (int j = 0; j < guia[i]; j++) {
+                ptr[i][j].mostrar(); // Muestra cada celda
+            }
+            cout << endl;
+        }
+    }
+
+    // Colocar una ficha en el tablero
+    void colocarFicha(int fila, int columna, const string& colorJugador) {
+        if (fila < 0 || fila >= 11 || columna < 0 || columna >= guia[fila]) {
+            cout << "Posición inválida." << endl;
+            return;
+        }
+        ptr[fila][columna].colocarFicha(colorJugador); // Agrega la ficha a la celda indicada
+    }
+};
+
+// Clase que representa la ficha de un jugador
+class Ficha {
+public:
+    string color;
+    Ficha(const string& color) : color(color) {}
+};
+
+// Clase que representa a un jugador
+class Jugador {
+public:
+    string nombre;
+    Ficha ficha;
+    vector<int> posicionesAvance; // Guarda las posiciones actuales de las fichas del jugador
+
+    Jugador(const string& nombre, const string& color) : nombre(nombre), ficha(color) {}
+
+    void colocarFicha(Tablero& tablero, int fila, int columna) {
+        tablero.colocarFicha(fila, columna, ficha.color);
+        posicionesAvance.push_back(fila); // Añadir la fila al avance del jugador
+    }
+
+    bool haGanado() {
+        // Si alguna de las posiciones del jugador llega a la fila 9 o más, ha ganado
+        for (int pos : posicionesAvance) {
+            if (pos >= 9) {
+                return true;
+            }
+        }
+        return false;
+    }
+};
+
+// Función para lanzar un dado
+int lanzarDados() {
+    return rand() % 6 + 1;
+}
+
+// Función para iniciar el juego
+void iniciarJuego() {
+    srand(time(0)); // Inicialización del generador de números aleatorios
+
+    cout << BOLD << "\n\t\t\tBienvenido a: Can't Stop\n" << RESET << endl;
+
+    Tablero tablero;
+    tablero.mostrar(); // Muestra el tablero vacío
+
+    int numJugadores;
+    do {
+        cout << "Ingrese el número de jugadores (1-4): ";
+        cin >> numJugadores;
+        if (numJugadores < 1 || numJugadores > 4) {
+            cout << "Error: El número de jugadores debe estar entre 1 y 4." << endl;
+        }
+    } while (numJugadores < 1 || numJugadores > 4);
+
+    vector<string> colores = {RED, BLUE, GREEN, YELLOW};
+    vector<Jugador> jugadores;
+
+    for (int i = 0; i < numJugadores; i++) {
+        string nombre = "Jugador " + to_string(i + 1);
+        jugadores.push_back(Jugador(nombre, colores[i]));
+        cout << "Jugador " << (i + 1) << " tiene el color " << colores[i] << endl;
+    }
+
+    int turno = 0;
+    while (true) {
+        Jugador& jugadorActual = jugadores[turno % numJugadores];
+
+        cout << "Turno de " << jugadorActual.nombre << endl;
+        tablero.mostrar();
+
+        int dado1 = lanzarDados();
+        int dado2 = lanzarDados();
+        int dado3 = lanzarDados();
+        int dado4 = lanzarDados();
+
+        cout << jugadorActual.nombre << " lanzó " << dado1 << ", " << dado2 << ", " << dado3 << " y " << dado4 << endl;
+
+        int eleccion1, eleccion2;
+        bool seleccionValida = false;
+        while (!seleccionValida) {
+            cout << "Seleccione los valores de los dados que desea sumar (1, 2, 3 o 4): " << endl;
+            cout << "Primera elección: ";
+            cin >> eleccion1;
+            cout << "Segunda elección: ";
+            cin >> eleccion2;
+
+            if ((eleccion1 >= 1 && eleccion1 <= 4) &&
+                (eleccion2 >= 1 && eleccion2 <= 4) &&
+                (eleccion1 != eleccion2)) {
+                seleccionValida = true;
+            } else {
+                cout << "Selección inválida. Asegúrese de elegir dos dados diferentes entre 1 y 4." << endl;
+            }
+        }
+
+        int sumaSeleccionada = (eleccion1 == 1 ? dado1 : eleccion1 == 2 ? dado2 : eleccion1 == 3 ? dado3 : dado4) +
+                               (eleccion2 == 1 ? dado1 : eleccion2 == 2 ? dado2 : eleccion2 == 3 ? dado3 : dado4);
+        cout << "La suma seleccionada es: " << sumaSeleccionada << endl;
+
+        // Validar si la suma no excede el tamaño del tablero
+        if (sumaSeleccionada > 11) {
+            cout << "La suma excede el tamaño del tablero. Vuelve a lanzar." << endl;
+            continue; // Reinicia el turno si la suma es inválida
+        }
+
+        // Convertir la suma a fila y columna.
+        int fila = sumaSeleccionada - 1;  // -1 porque las filas están indexadas desde 0 en el arreglo
+        int columna = fila;  // La columna será igual a la fila, como indica la regla
+
+        // Asegurarse de que la ficha se coloca en la primera celda vacía en esa fila y columna
+        while (columna < tablero.guia[fila] && !tablero.ptr[fila][columna].colores.empty()) {
+            columna++;
+        }
+
+        jugadorActual.colocarFicha(tablero, fila, columna);
+
+        // Verificar si el jugador ha ganado
+        if (jugadorActual.haGanado()) {
+            cout << jugadorActual.nombre << " ha ganado!" << endl;
+            break;
+        }
+
+        tablero.mostrar();
+
+        char continuar;
+        cout << "¿Deseas continuar? (s/n): ";
+        cin >> continuar;
+        if (continuar == 'n' || continuar == 'N') {
+            cout << "¡Gracias por jugar!" << endl;
+            break;
+        }
+
+        turno++;
+    }
+}
+
+int main() {
+    iniciarJuego();
+    return 0;
+}
+
